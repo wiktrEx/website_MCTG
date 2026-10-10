@@ -384,6 +384,7 @@ setInterval(tick, 1000);
 function adminView() {
   if (!ready) return '<div class="page center mut">Ładowanie…</div>';
   if (!authed()) return `<div class="page" style="max-width:380px;margin:0 auto">${pageTitle('Panel admina')}
+    ${configured ? `<label>E-mail admina (z Firebase Authentication)</label><input id="lm" type="email" autocomplete="username" value="${esc((() => { try { return localStorage.getItem('mcgt-admin-email'); } catch (e) { return ''; } })() || ADMIN_EMAIL)}">` : ''}
     <label>Hasło</label><input id="lp" type="password" autocomplete="current-password" autofocus>
     <button class="btn block" data-act="login">Zaloguj</button></div>`;
   if (!E) E = clone(D);
@@ -509,10 +510,18 @@ document.addEventListener('click', async e => {
     case 'clearimg': set(E, el.dataset.path, ''); render(); break;
     case 'save': await save(); break;
     case 'login': {
-      if ($('#lp').value !== ADMIN_PASS) { toast('Błędne hasło'); break; }
-      if (!configured) { demoAuthed = true; render(); break; }
-      try { await auth.signInWithEmailAndPassword(ADMIN_EMAIL, FB_PASS); }
-      catch (err) { console.error(err); toast('Logowanie do Firebase nie powiodło się: ' + (err.code || err.message)); }
+      const pw = $('#lp').value;
+      if (!configured) { if (pw !== ADMIN_PASS) { toast('Błędne hasło'); break; } demoAuthed = true; render(); break; }
+      const em = ($('#lm') && $('#lm').value.trim()) || ADMIN_EMAIL;
+      try {
+        // „MCGT1” zamieniamy na hasło konta w Firebase; każde inne hasło wysyłamy bez zmian
+        await auth.signInWithEmailAndPassword(em, pw === ADMIN_PASS ? FB_PASS : pw);
+        try { localStorage.setItem('mcgt-admin-email', em); } catch (x) {}
+      } catch (err) {
+        console.error(err);
+        const bad = ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email'];
+        toast(bad.includes(err.code) ? 'Błędny e-mail lub hasło (sprawdź konto w Firebase Authentication)' : 'Błąd Firebase: ' + (err.code || err.message));
+      }
       break;
     }
     case 'logout':
