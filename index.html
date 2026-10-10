@@ -180,7 +180,7 @@ function defaults() {
     current: 'e1',
     predict: {enabled: true, deadline: '2026-11-14T18:00', desc: 'Ułóż drużyny w kolejności, w jakiej według Ciebie skończą turniej.'},
     editions: [{
-      id: 'e1', name: 'MCGT 1', start: '2026-11-14T19:00', status: 'upcoming', played: 0,
+      id: 'e1', mode: 'team', solo: [], name: 'MCGT 1', start: '2026-11-14T19:00', status: 'upcoming', played: 0,
       teams: [T('Czerwoni', '#e11d2e', 1), T('Czarni', '#8b8b96', 5), T('Bordowi', '#a8243a', 9), T('Pomarańczowi', '#ff7a2f', 13), T('Szkarłatni', '#ff4d6d', 17)],
       replays: []
     }],
@@ -194,7 +194,7 @@ function defaults() {
     ],
     streams: [],
     videos: [{title: 'Trailer MCGT', url: ''}, {title: 'Co nowego', url: ''}],
-    org: [{nick: 'Organizator1', role: 'Organizator'}, {nick: 'Organizator2', role: 'Organizator'}]
+    org: [{nick: 'Organizator1', roles: ['Główny organizator']}, {nick: 'Organizator2', roles: ['Organizator', 'Technik']}]
   };
 }
 const NEW = {
@@ -203,9 +203,9 @@ const NEW = {
   game: () => ({name: 'Nowa gra', img: '', rounds: 1, desc: '', points: '', video: ''}),
   stream: () => ({nick: '', url: '', live: false}),
   video: () => ({title: '', url: ''}),
-  org: () => ({nick: '', role: 'Organizator'}),
+  org: () => ({nick: '', roles: []}),
   replay: () => ({title: '', url: '', type: 'film'}),
-  edition: () => ({id: 'e' + Date.now(), name: 'Nowa edycja', start: '', status: 'upcoming', played: 0, teams: [], replays: []})
+  edition: () => ({id: 'e' + Date.now(), name: 'Nowa edycja', start: '', status: 'upcoming', played: 0, mode: 'team', solo: [], teams: [], replays: []})
 };
 
 /* ---------- stan ---------- */
@@ -218,7 +218,12 @@ let PRED = [];           // lista typów (admin)
 
 const ed = () => D.editions.find(e => e.id === D.current) || D.editions[0] || {name: '', teams: [], replays: [], status: 'upcoming'};
 const vEd = () => D.editions.find(e => e.id === V.ed) || ed();
-const allPlayers = e => (e.teams || []).flatMap(t => (t.players || []).map(p => ({...p, team: t.name, color: t.color})));
+const isSolo = e => e && e.mode === 'solo';
+const allPlayers = e => isSolo(e)
+  ? (e.solo || []).map(p => ({...p, team: '', color: ''}))
+  : (e.teams || []).flatMap(t => (t.players || []).map(p => ({...p, team: t.name, color: t.color})));
+const ROLES = ['Główny organizator', 'Organizator', 'Technik', 'Budowniczy', 'Osoba medialna', 'Tester'];
+const rolesOf = o => (o.roles && o.roles.length) ? o.roles : (o.role ? [o.role] : []);
 
 /* ---------- Firebase ---------- */
 if (configured) {
@@ -281,9 +286,9 @@ const pages = {
 
   typowanie: () => {
     const e = ed(), open = D.predict.enabled && new Date(D.predict.deadline) > new Date();
-    const names = e.teams.map(t => t.name);
+    const names = isSolo(e) ? (e.solo || []).map(p => p.nick).filter(Boolean) : e.teams.map(t => t.name);
     if (!pred.order || pred.order.length !== names.length || names.some(n => !pred.order.includes(n))) pred.order = names.slice();
-    const col = n => (e.teams.find(t => t.name === n) || {}).color;
+    const col = n => isSolo(e) ? 'var(--red)' : ((e.teams.find(t => t.name === n) || {}).color || 'var(--red)');
     return `<div class="page">${pageTitle('Typowanie', D.predict.desc)}
       <div class="card center" style="margin-bottom:22px">${open ? 'Typy przyjmujemy do <b>' + fmtDate(D.predict.deadline) + '</b>' : 'Typowanie jest zamknięte.'}</div>
       ${pred.order.map((n, i) => `<div class="pi" style="--c:${esc(col(n))}"><span class="n">${i + 1}</span><span class="nm" style="color:${esc(col(n))}">${esc(n)}</span><button data-act="up:${i}" aria-label="W górę">▲</button><button data-act="down:${i}" aria-label="W dół">▼</button></div>`).join('')}
@@ -293,6 +298,15 @@ const pages = {
 
   druzyny: () => {
     const e = vEd(), pl = allPlayers(e);
+    if (isSolo(e)) return `<div class="page">${pageTitle('Uczestnicy', 'Edycja solo – każdy walczy sam o siebie')}
+      ${edTabs()}
+      <div class="grid g3" style="margin-bottom:26px">
+        <div class="card stat center"><b>${pl.length}</b><span>Uczestników</span></div>
+        <div class="card stat center"><b>${D.games.length}</b><span>Gier</span></div>
+        <div class="card stat center"><b>${e.played || 0}</b><span>Rozegranych</span></div>
+      </div>
+      <div class="grid g4">${pl.map(p => `<div class="card pl v">${av(p.nick, '', p.img)}<b>${esc(p.nick)}</b>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" style="font-size:12px">YouTube</a>` : ''}</div>`).join('')}</div>
+    </div>`;
     return `<div class="page">${pageTitle('Drużyny', 'Poznaj wszystkie drużyny biorące udział w ' + D.name)}
       ${edTabs()}
       <div class="grid g4" style="margin-bottom:26px">
@@ -334,7 +348,7 @@ const pages = {
 
   zespol: () => `<div class="page">${pageTitle('Zespół', 'Poznaj ludzi, którzy tworzą ' + D.name)}
     <h2 class="center" style="margin-top:0">Organizatorzy</h2>
-    <div class="grid g3">${D.org.map(o => `<div class="card pl v" style="padding:24px">${av(o.nick, '', o.img)}<b style="font-size:16px">${esc(o.nick)}</b><span class="badge">${esc(o.role)}</span></div>`).join('')}</div></div>`,
+    <div class="grid g3">${D.org.map(o => `<div class="card pl v" style="padding:24px">${av(o.nick, '', o.img)}<b style="font-size:16px">${esc(o.nick)}</b><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">${rolesOf(o).map(r => `<span class="badge">${esc(r)}</span>`).join('')}</div></div>`).join('')}</div></div>`,
 
   admin: () => adminView()
 };
@@ -360,7 +374,7 @@ function render() {
   const p = page(), sy = scrollY;
   if (!V.ed) V.ed = D.current;
   $('#logo').innerHTML = (D.logo ? `<img src="${esc(D.logo)}" alt="">` : '<i></i>') + esc(D.name);
-  $('#nav').innerHTML = navItems.map(([h, l]) => `<a href="#/${h}" data-act="nav:${h}" class="${h === p ? 'on' : ''}">${l}</a>`).join('');
+  $('#nav').innerHTML = navItems.map(([h, l]) => `<a href="#/${h}" data-act="nav:${h}" class="${h === p ? 'on' : ''}">${h === 'druzyny' && ed().mode === 'solo' ? 'Uczestnicy' : l}</a>`).join('');
   $('#foot').innerHTML = `© ${new Date().getFullYear()} ${esc(D.name)} · ${esc(D.subtitle)}<div style="margin-top:10px"><a href="#/admin" data-act="nav:admin" style="font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none">Admin</a></div>`;
   $('#app').innerHTML = (pages[p] || pages[''])();
   tick();
@@ -410,6 +424,10 @@ const IMG = (p, label, mode) => {
   const cls = mode === 'wide' ? 'w' : mode === 'logo' ? 'l' : '';
   return `<label>${label}</label><div class="up">${v ? `<img class="${cls}" src="${esc(v)}" alt="">` : ''}<input type="file" accept="image/*" data-img="${p}" data-mode="${mode}">${v ? `<button class="rm" style="margin:0" data-act="clearimg" data-path="${p}">Usuń</button>` : ''}</div>`;
 };
+const rolesBox = (o, i) => {
+  const cur = rolesOf(o), full = cur.length >= 3;
+  return `<label>Role (maksymalnie 3)</label><div style="display:flex;flex-wrap:wrap;gap:6px 18px">${ROLES.map(r => { const on = cur.includes(r); return `<label class="chk" style="margin:4px 0"><input type="checkbox" data-role="${i}" value="${esc(r)}" ${on ? 'checked' : ''} ${!on && full ? 'disabled' : ''}> ${esc(r)}</label>`; }).join('')}</div>`;
+};
 const rm = (path, i) => `<button class="rm" data-act="del" data-path="${path}" data-i="${i}">Usuń</button>`;
 const addBtn = (path, kind, label) => `<button class="btn ghost sm" data-act="add" data-path="${path}" data-kind="${kind}">+ ${label}</button>`;
 const edSelect = () => `<label>Edycja</label><select data-st="aed">${E.editions.map((e, i) => `<option value="${i}" ${V.aed == i ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select>`;
@@ -431,10 +449,15 @@ function adminTab() {
   if (t === 'editions') return `${E.editions.map((e, i) => `<div class="item">
       <div class="r2">${F(`editions.${i}.name`, 'Nazwa edycji')}${F(`editions.${i}.start`, 'Start (odliczanie)', 'datetime-local')}</div>
       <div class="r2">${S(`editions.${i}.status`, 'Status', [['upcoming', 'Nadchodząca (odliczanie)'], ['live', 'Trwa (NA ŻYWO)'], ['finished', 'Zakończona']])}${F(`editions.${i}.played`, 'Rozegranych gier', 'number', 'min="0"')}</div>
+      ${S(`editions.${i}.mode`, 'Typ edycji', [['team', 'Drużynowa'], ['solo', 'Solo (każdy sam za siebie)']])}
       ${E.editions.length > 1 ? rm('editions', i) : ''}</div>`).join('')}${addBtn('editions', 'edition', 'Dodaj edycję')}`;
 
   if (t === 'teams') {
     const e = E.editions[V.aed]; if (!e) return '';
+    if (e.mode === 'solo') {
+      e.solo = e.solo || [];
+      return `${edSelect()}<p class="mut" style="font-size:13px;margin:12px 0">Ta edycja jest solo – dodaj uczestników (bez drużyn). Typ edycji zmienisz w zakładce „Edycje”.</p>${e.solo.map((p, pi) => `<div class="item"><div class="r2">${F(`editions.${V.aed}.solo.${pi}.nick`, 'Nick Minecraft')}${F(`editions.${V.aed}.solo.${pi}.link`, 'Link YT (opcjonalnie)', 'url')}</div>${IMG(`editions.${V.aed}.solo.${pi}.img`, 'Zdjęcie profilowe (domyślnie głowa ze skina)', 'sq')}${rm(`editions.${V.aed}.solo`, pi)}</div>`).join('')}${addBtn(`editions.${V.aed}.solo`, 'player', 'Dodaj uczestnika')}`;
+    }
     return `${edSelect()}<div style="height:12px"></div>${e.teams.map((tm, ti) => `<div class="item">
       <div class="r2">${F(`editions.${V.aed}.teams.${ti}.name`, 'Nazwa drużyny')}${F(`editions.${V.aed}.teams.${ti}.color`, 'Kolor', 'color')}</div>
       <label style="margin-top:14px">Gracze</label>
@@ -457,7 +480,7 @@ function adminTab() {
 
   if (t === 'videos') return `${E.videos.map((v, i) => `<div class="item"><div class="r2">${F(`videos.${i}.title`, 'Tytuł')}${F(`videos.${i}.url`, 'Link YouTube', 'url')}</div>${IMG(`videos.${i}.thumb`, 'Miniaturka (domyślnie z YouTube)', 'wide')}${rm('videos', i)}</div>`).join('')}${addBtn('videos', 'video', 'Dodaj film')}`;
 
-  if (t === 'org') return `${E.org.map((o, i) => `<div class="item"><div class="r2">${F(`org.${i}.nick`, 'Nick')}${F(`org.${i}.role`, 'Rola')}</div>${IMG(`org.${i}.img`, 'Zdjęcie profilowe (domyślnie głowa ze skina)', 'sq')}${rm('org', i)}</div>`).join('')}${addBtn('org', 'org', 'Dodaj osobę')}`;
+  if (t === 'org') return `${E.org.map((o, i) => `<div class="item">${F(`org.${i}.nick`, 'Nick')}${rolesBox(o, i)}${IMG(`org.${i}.img`, 'Zdjęcie profilowe (domyślnie głowa ze skina)', 'sq')}${rm('org', i)}</div>`).join('')}${addBtn('org', 'org', 'Dodaj osobę')}`;
 
   if (t === 'preds') return `<button class="btn ghost sm" data-act="predload">Odśwież listę</button>
     <p class="mut" style="margin:12px 0">Typów: ${PRED.length}</p>
@@ -472,6 +495,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('input', onField);
 document.addEventListener('change', e => {
   if (e.target.dataset.img) { handleImg(e.target); return; }
+  if (e.target.dataset.role !== undefined) { toggleRole(+e.target.dataset.role, e.target.value, e.target.checked); return; }
   if (e.target.dataset.st) { V[e.target.dataset.st] = e.target.value; render(); return; }
   onField(e);
 });
@@ -532,6 +556,16 @@ document.addEventListener('click', async e => {
     case 'delpred': if (confirm('Usunąć typ?')) { await db.collection('predictions').doc(el.dataset.id).delete(); await loadPreds(); } break;
   }
 });
+
+function toggleRole(i, role, on) {
+  const o = E.org[i];
+  let r = rolesOf(o).slice();
+  if (on) { if (r.length >= 3) toast('Maksymalnie 3 role na osobę'); else r.push(role); }
+  else r = r.filter(x => x !== role);
+  o.roles = ROLES.filter(x => r.includes(x));
+  delete o.role;
+  render();
+}
 
 function handleImg(inp) {
   const f = inp.files[0]; if (!f) return;
