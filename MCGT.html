@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MCGT – Minecraft Game Tiers</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+:root{--bg:#0b0b0c;--card:#131315;--line:#27272b;--txt:#f3f3f3;--mut:#9b9ba3;--red:#e11d2e;--red2:#ff5a3c}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:'Poppins',system-ui,sans-serif;line-height:1.55;min-height:100vh}
+a{color:var(--red2)}
+.wrap{max-width:960px;margin:0 auto;padding:0 18px}
+/* header */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(11,11,12,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:800;font-size:22px;letter-spacing:1px;text-decoration:none;color:var(--txt);display:flex;align-items:center;gap:8px}
+.logo i{width:12px;height:12px;background:var(--red);display:inline-block}
+nav{display:flex;gap:4px}
+nav a{color:var(--mut);text-decoration:none;padding:8px 12px;border-radius:8px;font-size:14px;font-weight:500}
+nav a:hover,nav a.on{color:var(--txt);background:var(--card)}
+nav a.on{color:var(--red2)}
+.burger{display:none;background:none;border:0;color:var(--txt);font-size:26px;cursor:pointer}
+@media(max-width:760px){.burger{display:block}nav{display:none;position:absolute;top:60px;left:0;right:0;flex-direction:column;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 18px}nav.open{display:flex}}
+/* type */
+h1.t{font-size:clamp(36px,9vw,64px);font-weight:800;line-height:1.05;background:linear-gradient(90deg,var(--red),var(--red2));-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+.sub{color:var(--mut);text-align:center;max-width:560px;margin:14px auto 0}
+.bar{width:90px;height:4px;border-radius:4px;background:linear-gradient(90deg,var(--red),var(--red2));margin:26px auto 36px}
+.page{padding:48px 0 70px}
+h2{font-size:24px;font-weight:600;margin:40px 0 14px}
+.mut{color:var(--mut)}
+.center{text-align:center}
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.card.hl{border-color:var(--red)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:760px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.g2{grid-template-columns:1fr}}
+.stat b{display:block;font-size:34px;font-weight:800;color:var(--red2)}
+.stat span{color:var(--mut);font-size:14px}
+/* buttons */
+.btn{display:inline-block;background:linear-gradient(90deg,var(--red),var(--red2));color:#fff;border:0;border-radius:999px;padding:11px 24px;font:600 15px 'Poppins',sans-serif;cursor:pointer;text-decoration:none}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+.btn.block{display:block;text-align:center;width:100%;margin-top:10px}
+.btn.sm{padding:6px 14px;font-size:13px}
+.btn.yt{background:#d62323}.btn.dc{background:#5865f2}
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:22px}
+.tab{background:transparent;border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:8px 18px;font:500 14px 'Poppins',sans-serif;cursor:pointer}
+.tab.on{background:var(--red);border-color:var(--red);color:#fff}
+/* countdown */
+.cd{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px 0}
+.cb{background:#0b0b0c;border:1px solid var(--line);border-radius:12px;min-width:76px;padding:12px 8px;text-align:center}
+.cb b{display:block;font-size:34px;font-weight:800;color:var(--red2);line-height:1.1}
+.cb span{font-size:12px;color:var(--mut)}
+.live{font-size:28px;font-weight:800;color:var(--red2);padding:18px}
+/* avatars */
+.av{width:56px;height:56px;border-radius:12px;border:2px solid var(--line);image-rendering:pixelated;background:#222;display:block;flex:none}
+.av.ph{display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--mut)}
+.av.photo{image-rendering:auto;object-fit:cover}
+.logo img{height:30px;display:block}
+.up{display:flex;gap:10px;align-items:center;margin-top:4px}
+.up img{width:56px;height:56px;border-radius:10px;object-fit:cover;background:#222;flex:none}
+.up img.w{width:100px;height:56px}
+.up img.l{object-fit:contain;width:56px}
+.up input{flex:1;min-width:0;padding:6px}
+.pl{display:flex;align-items:center;gap:12px}
+.pl.v{flex-direction:column;text-align:center;gap:6px;font-size:14px}
+.pl.v .av{width:64px;height:64px}
+/* teams */
+.team{border-left:4px solid var(--c,var(--red))}
+.team h3{color:var(--c,var(--red));font-size:18px;margin-bottom:12px}
+.team .row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:480px){.team .row{grid-template-columns:repeat(2,1fr)}}
+/* video */
+.vid{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.vid .th{aspect-ratio:16/9;background:#1a1a1d center/cover no-repeat;position:relative}
+.vid .th:after{content:'▶';position:absolute;inset:0;margin:auto;width:58px;height:58px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px}
+.vid .vt{padding:12px 14px;font-weight:600;font-size:15px}
+.vid iframe{width:100%;aspect-ratio:16/9;border:0;display:block}
+/* games */
+.game .gi{aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,#2a0a0e,#120a0b) center/cover;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:26px;margin-bottom:14px;text-align:center;padding:10px}
+.game h3{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:20px}
+.badge{font-size:12px;border:1px solid var(--red);color:var(--red2);border-radius:999px;padding:2px 10px;font-weight:600;white-space:nowrap}
+.pts{margin-top:10px;font-size:14px;color:var(--mut);white-space:pre-line}
+.empty{border:1px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mut)}
+/* predict */
+.pi{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c,var(--red));border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.pi .n{font-weight:800;width:26px;color:var(--mut)}
+.pi .nm{flex:1;font-weight:600}
+.pi button{background:#0b0b0c;border:1px solid var(--line);color:var(--txt);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:15px}
+.pi button:hover{border-color:var(--red)}
+/* forms */
+label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea{width:100%;background:#0b0b0c;border:1px solid var(--line);color:var(--txt);padding:9px 11px;border-radius:8px;font:14px 'Poppins',sans-serif}
+input[type=color]{padding:2px;height:38px}
+input[type=checkbox]{width:auto}
+label.chk{display:flex;align-items:center;gap:8px;color:var(--txt);font-size:14px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--red);outline-offset:0}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:560px){.r2,.r3{grid-template-columns:1fr}}
+.item{background:#0e0e10;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.rm{background:transparent;border:1px solid #5a1a20;color:#ff7b86;border-radius:8px;padding:4px 10px;cursor:pointer;font:12px 'Poppins',sans-serif;margin-top:8px}
+.savebar{position:sticky;bottom:0;background:rgba(11,11,12,.95);border-top:1px solid var(--line);padding:12px 0;margin-top:24px;display:flex;gap:10px;align-items:center}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--red);color:#fff;padding:10px 20px;border-radius:999px;font-weight:600;z-index:50;font-size:14px}
+footer{border-top:1px solid var(--line);padding:22px 0;text-align:center;color:var(--mut);font-size:13px}
+@media(prefers-reduced-motion:no-preference){.page{animation:in .3s ease}@keyframes in{from{opacity:0}to{opacity:1}}}
+</style>
+</head>
+<body>
+<header><div class="wrap hd">
+  <a class="logo" href="#/" data-act="nav:" id="logo"></a>
+  <button class="burger" data-act="burger" aria-label="Menu">☰</button>
+  <nav id="nav"></nav>
+</div></header>
+<main class="wrap" id="app"><div class="page center mut">Ładowanie…</div></main>
+<footer><div class="wrap" id="foot"></div></footer>
+
+<script>
+/* =====================================================
+   1) WKLEJ TU KONFIGURACJĘ FIREBASE (instrukcja w czacie)
+   ===================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyATk0epsXHfLhxuSnYN5O3bOSq33jU8DPg",
+  authDomain: "mcgt-cc1db.firebaseapp.com",
+  projectId: "mcgt-cc1db",
+  storageBucket: "mcgt-cc1db.firebasestorage.app",
+  messagingSenderId: "999038430904",
+  appId: "1:999038430904:web:57db8c17eda6671cabce4d"
+};
+
+/* ===================================================== */
+let configured = !!FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("WKLEJ") && typeof firebase !== 'undefined';
+let db = null, auth = null, user = null;
+/* Hasło do panelu admina i konto techniczne w Firebase (patrz instrukcja) */
+const ADMIN_PASS = 'MCGT1';
+const ADMIN_EMAIL = 'admin@mcgt.pl';
+const FB_PASS = ADMIN_PASS + '_fb'; // Firebase wymaga min. 6 znaków
+let demoAuthed = false;
+const authed = () => configured ? !!user : demoAuthed;
+window.addEventListener('error', ev => {
+  let b = document.getElementById('errbar');
+  if (!b) { b = document.createElement('div'); b.id = 'errbar'; b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99;background:#7a0010;color:#fff;font:12px monospace;padding:8px 12px'; document.body.appendChild(b); }
+  b.textContent = 'Błąd skryptu: ' + ev.message + ' (linia ' + ev.lineno + ')';
+});
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
+const set = (o, p, v) => { const k = p.split('.'), l = k.pop(); k.reduce((a, x) => a[x], o)[l] = v; };
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? '—' : d.toLocaleString('pl-PL', {dateStyle: 'full', timeStyle: 'short'}); };
+const ytId = u => { const m = String(u || '').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : null; };
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+
+/* ---------- domyślne dane (zapisują się w Firebase po 1. zapisie w panelu) ---------- */
+function defaults() {
+  const T = (name, color, n) => ({name, color, players: [0,1,2,3].map(i => ({nick: 'Gracz' + (n + i), link: ''}))});
+  return {
+    name: 'MCGT',
+    subtitle: 'MINECRAFT GAME TIERS',
+    tagline: 'Turniej minecraftowych YouTuberów. Gry, drużyny, rywalizacja.',
+    accent: '#e11d2e', accent2: '#ff5a3c',
+    discord: 'https://discord.gg/', youtube: 'https://youtube.com/',
+    formatTitle: 'Dwudziestu twórców, pięć drużyn',
+    formatText: 'Zapraszamy 20 twórców internetowych i dzielimy ich na 5 czteroosobowych drużyn. Punkty z każdej rozgrywki sumują się do wspólnego wyniku, a wygrywa drużyna z największym dorobkiem.',
+    formatText2: 'Oficjalne odsłony gramy z twórcami, ale co jakiś czas robimy edycję otwartą dla widzów.',
+    current: 'e1',
+    predict: {enabled: true, deadline: '2026-11-14T18:00', desc: 'Ułóż drużyny w kolejności, w jakiej według Ciebie skończą turniej.'},
+    editions: [{
+      id: 'e1', name: 'MCGT 1', start: '2026-11-14T19:00', status: 'upcoming', played: 0,
+      teams: [T('Czerwoni', '#e11d2e', 1), T('Czarni', '#8b8b96', 5), T('Bordowi', '#a8243a', 9), T('Pomarańczowi', '#ff7a2f', 13), T('Szkarłatni', '#ff4d6d', 17)],
+      replays: []
+    }],
+    games: [
+      {name: 'Survival Games', img: '', rounds: 2, desc: 'Battle royale: zbierasz ekwipunek ze skrzynek i walczysz o przetrwanie.', points: '', video: ''},
+      {name: 'Parkour', img: '', rounds: 1, desc: 'Tor przeszkód na czas. Kto pierwszy na mecie, ten zgarnia punkty.', points: '', video: ''},
+      {name: 'Dead Run', img: '', rounds: 1, desc: 'Wyścig przez tor pełen pułapek. Przetrwaj i dobiegnij do mety.', points: '', video: ''},
+      {name: 'Spleef', img: '', rounds: 2, desc: 'Niszcz podłogę pod przeciwnikami i zostań ostatnim na arenie.', points: '', video: ''},
+      {name: 'Elytra Fly', img: '', rounds: 1, desc: 'Lot na elytrach przez trasę z obręczami. Liczy się czas i precyzja.', points: '', video: ''},
+      {name: 'TNT Run', img: '', rounds: 2, desc: 'Biegnij, bo podłoga znika pod Twoimi stopami.', points: '', video: ''}
+    ],
+    streams: [],
+    videos: [{title: 'Trailer MCGT', url: ''}, {title: 'Co nowego', url: ''}],
+    org: [{nick: 'Organizator1', role: 'Organizator'}, {nick: 'Organizator2', role: 'Organizator'}]
+  };
+}
+const NEW = {
+  player: () => ({nick: '', link: ''}),
+  team: () => ({name: 'Nowa drużyna', color: '#e11d2e', players: []}),
+  game: () => ({name: 'Nowa gra', img: '', rounds: 1, desc: '', points: '', video: ''}),
+  stream: () => ({nick: '', url: '', live: false}),
+  video: () => ({title: '', url: ''}),
+  org: () => ({nick: '', role: 'Organizator'}),
+  replay: () => ({title: '', url: '', type: 'film'}),
+  edition: () => ({id: 'e' + Date.now(), name: 'Nowa edycja', start: '', status: 'upcoming', played: 0, teams: [], replays: []})
+};
+
+/* ---------- stan ---------- */
+let D = defaults();      // dane publiczne (z Firebase)
+let E = null;            // kopia edytowana w panelu
+let ready = false;
+const V = {ed: null, rt: 'film', sf: 'all', tab: 'general', aed: 0};
+let pred = {order: null, nick: ''};
+let PRED = [];           // lista typów (admin)
+
+const ed = () => D.editions.find(e => e.id === D.current) || D.editions[0] || {name: '', teams: [], replays: [], status: 'upcoming'};
+const vEd = () => D.editions.find(e => e.id === V.ed) || ed();
+const allPlayers = e => (e.teams || []).flatMap(t => (t.players || []).map(p => ({...p, team: t.name, color: t.color})));
+
+/* ---------- Firebase ---------- */
+if (configured) {
+  try { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.firestore(); auth = firebase.auth(); }
+  catch (err) { console.error(err); configured = false; }
+}
+if (configured) {
+  auth.onAuthStateChanged(u => { user = u; if (page() === 'admin') render(); });
+  db.doc('site/config').onSnapshot(s => {
+    if (s.exists) D = Object.assign(defaults(), s.data());
+    const first = !ready; ready = true;
+    applyTheme();
+    if (first || page() !== 'admin') render();
+  }, err => { console.error(err); ready = true; render(); toast('Błąd połączenia z Firebase'); });
+} else {
+  try { const l = localStorage.getItem('mcgt-demo'); if (l) D = Object.assign(defaults(), JSON.parse(l)); } catch (e) {}
+  ready = true;
+}
+
+/* ---------- avatar / wideo ---------- */
+const av = (nick, c, img) => `<img class="av${img ? ' photo' : ''}" ${c ? `style="border-color:${esc(c)}"` : ''} src="${img ? esc(img) : 'https://mc-heads.net/avatar/' + encodeURIComponent(nick || 'Steve') + '/96'}" alt="${esc(nick)}" loading="lazy" onerror="avErr(this)">`;
+function avErr(i) { const d = document.createElement('div'); d.className = 'av ph'; d.textContent = (i.alt || '?')[0]; d.style.borderColor = i.style.borderColor; i.replaceWith(d); }
+const vidCard = (title, url, thumb) => {
+  const id = ytId(url);
+  const bg = thumb || (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '');
+  return `<div class="vid" data-act="play" data-url="${esc(url)}"><div class="th" ${bg ? `style="background-image:url('${esc(bg)}')"` : ''}></div><div class="vt">${esc(title)}</div></div>`;
+};
+
+/* ---------- strony publiczne ---------- */
+const pageTitle = (t, s) => `<h1 class="t">${esc(t)}</h1>${s ? `<p class="sub">${esc(s)}</p>` : ''}<div class="bar"></div>`;
+const tabs = (items, active, act) => `<div class="tabs">${items.map(([v, l]) => `<button class="tab ${v === active ? 'on' : ''}" data-act="${act}:${esc(v)}">${esc(l)}</button>`).join('')}</div>`;
+const edTabs = () => D.editions.length > 1 ? tabs(D.editions.map(e => [e.id, e.name]), vEd().id, 'ed') : '';
+
+const pages = {
+  '': () => {
+    const e = ed(), vids = D.videos.filter(v => v.url);
+    return `<div class="page">
+      <div class="center" style="padding:20px 0 6px"><p class="mut" style="letter-spacing:3px;font-size:13px">${esc(D.subtitle)}</p></div>
+      ${pageTitle(D.name, D.tagline)}
+      <div class="card hl center"><div style="font-size:20px;font-weight:600">${esc(e.name)}</div><div id="cd" class="cd"></div><div class="mut">Start: ${fmtDate(e.start)}</div></div>
+      <h2>${esc(D.formatTitle)}</h2>
+      <p>${esc(D.formatText)}</p><p class="mut" style="margin-top:10px">${esc(D.formatText2)}</p>
+      ${vids.length ? `<h2>Filmy</h2><div class="grid g2">${vids.map(v => vidCard(v.title, v.url, v.thumb)).join('')}</div>` : ''}
+      ${D.predict.enabled ? `<div class="card" style="margin-top:30px"><div style="font-weight:600;font-size:18px">Wytypuj ranking ${esc(e.name)}</div><p class="mut" style="margin:6px 0 14px">${esc(D.predict.desc)}</p><a class="btn" href="#/typowanie" data-act="nav:typowanie">Typuj teraz</a></div>` : ''}
+      <a class="btn yt block" href="${esc(D.youtube)}" target="_blank" rel="noopener">Zobacz nasze filmy</a>
+      <a class="btn dc block" href="${esc(D.discord)}" target="_blank" rel="noopener">Dołącz do Discorda</a>
+    </div>`;
+  },
+
+  transmisje: () => {
+    const live = D.streams.filter(s => s.live);
+    const list = V.sf === 'live' ? live : D.streams;
+    return `<div class="page">${pageTitle('Transmisje', 'Wybierz czyimi oczami oglądasz ' + ed().name)}
+      <div class="card"><div style="font-weight:600;font-size:18px">${live.length ? '● ' + live.length + ' na żywo' : 'Nikt teraz nie streamuje'}</div><div class="mut">${D.streams.length} uczestników</div></div>
+      <div style="margin:18px 0">${tabs([['all', 'Wszyscy (' + D.streams.length + ')'], ['live', 'Na żywo (' + live.length + ')']], V.sf, 'sf')}</div>
+      ${list.length ? `<div class="grid g2">${list.map(s => `<div class="card pl">${av(s.nick, '', s.img)}<div style="flex:1"><b>${esc(s.nick)}</b><div class="mut" style="font-size:13px">${s.live ? '<span style="color:var(--red2)">● na żywo</span>' : 'offline'}</div></div>${s.url ? `<a class="btn sm ${s.live ? '' : 'ghost'}" href="${esc(s.url)}" target="_blank" rel="noopener">Oglądaj</a>` : ''}</div>`).join('')}</div>`
+        : `<div class="empty">Lista uczestników transmitujących pojawi się przed startem turnieju.</div>`}
+    </div>`;
+  },
+
+  typowanie: () => {
+    const e = ed(), open = D.predict.enabled && new Date(D.predict.deadline) > new Date();
+    const names = e.teams.map(t => t.name);
+    if (!pred.order || pred.order.length !== names.length || names.some(n => !pred.order.includes(n))) pred.order = names.slice();
+    const col = n => (e.teams.find(t => t.name === n) || {}).color;
+    return `<div class="page">${pageTitle('Typowanie', D.predict.desc)}
+      <div class="card center" style="margin-bottom:22px">${open ? 'Typy przyjmujemy do <b>' + fmtDate(D.predict.deadline) + '</b>' : 'Typowanie jest zamknięte.'}</div>
+      ${pred.order.map((n, i) => `<div class="pi" style="--c:${esc(col(n))}"><span class="n">${i + 1}</span><span class="nm" style="color:${esc(col(n))}">${esc(n)}</span><button data-act="up:${i}" aria-label="W górę">▲</button><button data-act="down:${i}" aria-label="W dół">▼</button></div>`).join('')}
+      ${open ? `<label>Twój nick</label><input id="pnick" maxlength="24" value="${esc(pred.nick)}" placeholder="np. Steve123"><button class="btn block" data-act="submit">Wyślij typ</button>` : ''}
+    </div>`;
+  },
+
+  druzyny: () => {
+    const e = vEd(), pl = allPlayers(e);
+    return `<div class="page">${pageTitle('Drużyny', 'Poznaj wszystkie drużyny biorące udział w ' + D.name)}
+      ${edTabs()}
+      <div class="grid g4" style="margin-bottom:26px">
+        <div class="card stat center"><b>${e.teams.length}</b><span>Drużyn</span></div>
+        <div class="card stat center"><b>${pl.length}</b><span>Uczestników</span></div>
+        <div class="card stat center"><b>${D.games.length}</b><span>Gier</span></div>
+        <div class="card stat center"><b>${e.played || 0}</b><span>Rozegranych</span></div>
+      </div>
+      <div class="grid g2">${e.teams.map(t => `<div class="card team" style="--c:${esc(t.color)}"><h3>${esc(t.name)}</h3><div class="row">${t.players.map(p => `<div class="pl v">${av(p.nick, t.color, p.img)}<span>${esc(p.nick)}</span></div>`).join('')}</div></div>`).join('')}</div>
+    </div>`;
+  },
+
+  gracze: () => {
+    const e = vEd(), pl = allPlayers(e);
+    return `<div class="page">${pageTitle('Gracze', pl.length + ' twórców w ' + e.name)}
+      ${edTabs()}
+      <div class="grid g4">${pl.map(p => `<div class="card pl v">${av(p.nick, p.color, p.img)}<b>${esc(p.nick)}</b><span style="color:${esc(p.color)};font-size:12px">${esc(p.team)}</span>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" style="font-size:12px">YouTube</a>` : ''}</div>`).join('')}</div>
+    </div>`;
+  },
+
+  rozgrywki: () => `<div class="page">${pageTitle('Rozgrywki', 'Wszystkie gry, w których rywalizują drużyny')}
+    <p class="mut center" style="margin-bottom:20px">${D.games.length} rozgrywek</p>
+    <div class="grid g2">${D.games.map(g => `<div class="card game">
+      <div class="gi" ${g.img ? `style="background-image:url('${esc(g.img)}')"` : ''}>${g.img ? '' : esc(g.name)}</div>
+      <h3>${esc(g.name)}<span class="badge">${esc(g.rounds)} ${g.rounds == 1 ? 'runda' : 'rundy'}</span></h3>
+      <p class="mut" style="margin-top:8px;font-size:14px">${esc(g.desc)}</p>
+      ${g.points ? `<div class="pts"><b style="color:var(--txt)">Punktacja</b>\n${esc(g.points)}</div>` : ''}
+      ${g.video ? `<div style="margin-top:12px">${vidCard('Prezentacja gry', g.video, g.videoThumb)}</div>` : ''}
+    </div>`).join('')}</div></div>`,
+
+  powtorki: () => {
+    const e = vEd(), list = (e.replays || []).filter(r => r.type === V.rt);
+    return `<div class="page">${pageTitle('Powtórki', 'Obejrzyj nagrania z turniejów ' + D.name)}
+      ${edTabs()}
+      ${tabs([['film', 'Filmy'], ['stream', 'Streamy']], V.rt, 'rt')}
+      ${list.length ? `<div class="grid g2">${list.map(r => vidCard(r.title, r.url, r.thumb)).join('')}</div>` : `<div class="empty">Brak nagrań w tej kategorii.</div>`}
+    </div>`;
+  },
+
+  zespol: () => `<div class="page">${pageTitle('Zespół', 'Poznaj ludzi, którzy tworzą ' + D.name)}
+    <h2 class="center" style="margin-top:0">Organizatorzy</h2>
+    <div class="grid g3">${D.org.map(o => `<div class="card pl v" style="padding:24px">${av(o.nick, '', o.img)}<b style="font-size:16px">${esc(o.nick)}</b><span class="badge">${esc(o.role)}</span></div>`).join('')}</div></div>`,
+
+  admin: () => adminView()
+};
+const navItems = [['', 'Start'], ['transmisje', 'Transmisje'], ['typowanie', 'Typowanie'], ['druzyny', 'Drużyny'], ['gracze', 'Gracze'], ['rozgrywki', 'Rozgrywki'], ['powtorki', 'Powtórki'], ['zespol', 'Zespół']];
+
+/* ---------- render + router ---------- */
+const fromHash = () => (location.hash.replace(/^#\/?/, '') || '').split('?')[0];
+let cur = fromHash();
+const page = () => cur;
+function go(p) {
+  cur = p || '';
+  try { history.replaceState(null, '', '#/' + cur); } catch (e) {}
+  $('#nav').classList.remove('open');
+  render();
+  scrollTo(0, 0);
+}
+function applyTheme() {
+  document.documentElement.style.setProperty('--red', D.accent || '#e11d2e');
+  document.documentElement.style.setProperty('--red2', D.accent2 || '#ff5a3c');
+  document.title = D.name + ' – ' + D.subtitle;
+}
+function render() {
+  const p = page(), sy = scrollY;
+  if (!V.ed) V.ed = D.current;
+  $('#logo').innerHTML = (D.logo ? `<img src="${esc(D.logo)}" alt="">` : '<i></i>') + esc(D.name);
+  $('#nav').innerHTML = navItems.map(([h, l]) => `<a href="#/${h}" data-act="nav:${h}" class="${h === p ? 'on' : ''}">${l}</a>`).join('');
+  $('#foot').innerHTML = `© ${new Date().getFullYear()} ${esc(D.name)} · ${esc(D.subtitle)}<div style="margin-top:10px"><a href="#/admin" data-act="nav:admin" style="font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none">Admin</a></div>`;
+  $('#app').innerHTML = (pages[p] || pages[''])();
+  tick();
+  if (p === 'admin') scrollTo(0, sy);
+}
+window.addEventListener('hashchange', () => { if (fromHash() !== cur) go(fromHash()); });
+
+/* ---------- odliczanie ---------- */
+function tick() {
+  const el = $('#cd'); if (!el) return;
+  const e = ed();
+  if (e.status === 'live') { el.innerHTML = '<div class="live">● NA ŻYWO</div>'; return; }
+  if (e.status === 'finished') { el.innerHTML = '<div class="live">Edycja zakończona</div>'; return; }
+  let s = Math.floor((new Date(e.start) - Date.now()) / 1000);
+  if (!(s > 0)) { el.innerHTML = '<div class="live">Start już za chwilę</div>'; return; }
+  el.innerHTML = [['dni', 86400], ['godzin', 3600], ['minut', 60], ['sekund', 1]].map(([l, n]) => { const v = Math.floor(s / n); s %= n; return `<div class="cb"><b>${String(v).padStart(2, '0')}</b><span>${l}</span></div>`; }).join('');
+}
+setInterval(tick, 1000);
+
+/* ---------- PANEL ADMINA ---------- */
+function adminView() {
+  if (!ready) return '<div class="page center mut">Ładowanie…</div>';
+  if (!authed()) return `<div class="page" style="max-width:380px;margin:0 auto">${pageTitle('Panel admina')}
+    <label>Hasło</label><input id="lp" type="password" autocomplete="current-password" autofocus>
+    <button class="btn block" data-act="login">Zaloguj</button></div>`;
+  if (!E) E = clone(D);
+  const tabsList = [['general', 'Ogólne'], ['editions', 'Edycje'], ['teams', 'Drużyny i gracze'], ['games', 'Gry'], ['streams', 'Transmisje'], ['replays', 'Powtórki'], ['videos', 'Filmy'], ['org', 'Zespół'], ['preds', 'Typy']];
+  return `<div class="page"><h1 class="t" style="font-size:34px">Panel admina</h1>
+    ${!configured ? `<div class="card" style="margin:16px 0;border-color:var(--red)">Tryb demo: brak konfiguracji Firebase. Zmiany zapisują się tylko w tej przeglądarce.</div>` : ''}
+    <div class="bar" style="margin:18px auto 22px"></div>
+    ${tabs(tabsList, V.tab, 'atab')}
+    ${adminTab()}
+    <div class="savebar"><button class="btn" data-act="save">Zapisz i opublikuj</button><span class="mut" style="font-size:12px">Dane: ${Math.round(JSON.stringify(E).length / 1024)} / 1000 KB</span><button class="btn ghost" data-act="logout">Wyloguj</button></div>
+  </div>`;
+}
+
+const F = (p, label, type = 'text', extra = '') => {
+  const v = get(E, p);
+  if (type === 'checkbox') return `<label class="chk"><input type="checkbox" data-p="${p}" ${v ? 'checked' : ''}> ${label}</label>`;
+  if (type === 'textarea') return `<label>${label}</label><textarea data-p="${p}" rows="3">${esc(v)}</textarea>`;
+  return `<label>${label}</label><input type="${type}" data-p="${p}" value="${esc(v)}" ${extra}>`;
+};
+const S = (p, label, opts) => `<label>${label}</label><select data-p="${p}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${get(E, p) === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+const IMG = (p, label, mode) => {
+  const v = get(E, p) || '';
+  const cls = mode === 'wide' ? 'w' : mode === 'logo' ? 'l' : '';
+  return `<label>${label}</label><div class="up">${v ? `<img class="${cls}" src="${esc(v)}" alt="">` : ''}<input type="file" accept="image/*" data-img="${p}" data-mode="${mode}">${v ? `<button class="rm" style="margin:0" data-act="clearimg" data-path="${p}">Usuń</button>` : ''}</div>`;
+};
+const rm = (path, i) => `<button class="rm" data-act="del" data-path="${path}" data-i="${i}">Usuń</button>`;
+const addBtn = (path, kind, label) => `<button class="btn ghost sm" data-act="add" data-path="${path}" data-kind="${kind}">+ ${label}</button>`;
+const edSelect = () => `<label>Edycja</label><select data-st="aed">${E.editions.map((e, i) => `<option value="${i}" ${V.aed == i ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select>`;
+
+function adminTab() {
+  const t = V.tab;
+  if (t === 'general') return `
+    <div class="card">
+      <div class="r2">${F('name', 'Nazwa turnieju')}${F('subtitle', 'Podtytuł')}</div>
+      ${IMG('logo', 'Logo strony (opcjonalnie)', 'logo')}${F('tagline', 'Opis na stronie głównej')}
+      <div class="r2">${F('accent', 'Kolor główny', 'color')}${F('accent2', 'Kolor dodatkowy', 'color')}</div>
+      ${S('current', 'Aktualna edycja (odliczanie na stronie głównej)', E.editions.map(e => [e.id, e.name]))}
+      <div class="r2">${F('discord', 'Link do Discorda', 'url')}${F('youtube', 'Link do YouTube', 'url')}</div>
+      ${F('formatTitle', 'Format – nagłówek')}${F('formatText', 'Format – opis', 'textarea')}${F('formatText2', 'Format – dopisek', 'textarea')}
+      <h2 style="font-size:18px">Typowanie</h2>
+      ${F('predict.enabled', 'Typowanie włączone', 'checkbox')}${F('predict.desc', 'Opis')}${F('predict.deadline', 'Koniec typowania', 'datetime-local')}
+    </div>`;
+
+  if (t === 'editions') return `${E.editions.map((e, i) => `<div class="item">
+      <div class="r2">${F(`editions.${i}.name`, 'Nazwa edycji')}${F(`editions.${i}.start`, 'Start (odliczanie)', 'datetime-local')}</div>
+      <div class="r2">${S(`editions.${i}.status`, 'Status', [['upcoming', 'Nadchodząca (odliczanie)'], ['live', 'Trwa (NA ŻYWO)'], ['finished', 'Zakończona']])}${F(`editions.${i}.played`, 'Rozegranych gier', 'number', 'min="0"')}</div>
+      ${E.editions.length > 1 ? rm('editions', i) : ''}</div>`).join('')}${addBtn('editions', 'edition', 'Dodaj edycję')}`;
+
+  if (t === 'teams') {
+    const e = E.editions[V.aed]; if (!e) return '';
+    return `${edSelect()}<div style="height:12px"></div>${e.teams.map((tm, ti) => `<div class="item">
+      <div class="r2">${F(`editions.${V.aed}.teams.${ti}.name`, 'Nazwa drużyny')}${F(`editions.${V.aed}.teams.${ti}.color`, 'Kolor', 'color')}</div>
+      <label style="margin-top:14px">Gracze</label>
+      ${tm.players.map((p, pi) => `<div style="border-top:1px solid var(--line);padding-top:6px;margin-bottom:10px"><div class="r3" style="align-items:end">${F(`editions.${V.aed}.teams.${ti}.players.${pi}.nick`, 'Nick Minecraft')}${F(`editions.${V.aed}.teams.${ti}.players.${pi}.link`, 'Link YT (opcjonalnie)', 'url')}<div>${rm(`editions.${V.aed}.teams.${ti}.players`, pi)}</div></div>${IMG(`editions.${V.aed}.teams.${ti}.players.${pi}.img`, 'Zdjęcie profilowe (domyślnie głowa ze skina)', 'sq')}</div>`).join('')}
+      ${addBtn(`editions.${V.aed}.teams.${ti}.players`, 'player', 'Dodaj gracza')} ${rm(`editions.${V.aed}.teams`, ti).replace('Usuń', 'Usuń drużynę')}</div>`).join('')}${addBtn(`editions.${V.aed}.teams`, 'team', 'Dodaj drużynę')}`;
+  }
+
+  if (t === 'games') return `${E.games.map((g, i) => `<div class="item">
+      <div class="r2">${F(`games.${i}.name`, 'Nazwa gry')}${F(`games.${i}.rounds`, 'Liczba rund', 'number', 'min="1"')}</div>
+      ${IMG(`games.${i}.img`, 'Grafika gry', 'wide')}${F(`games.${i}.desc`, 'Opis', 'textarea')}${F(`games.${i}.points`, 'Punktacja (każda linia osobno)', 'textarea')}${F(`games.${i}.video`, 'Link do filmu z prezentacją (YouTube)', 'url')}${IMG(`games.${i}.videoThumb`, 'Miniaturka filmu (domyślnie z YouTube)', 'wide')}
+      ${rm('games', i)}</div>`).join('')}${addBtn('games', 'game', 'Dodaj grę')}`;
+
+  if (t === 'streams') return `<p class="mut" style="font-size:13px;margin-bottom:12px">Zaznacz „Na żywo”, gdy ktoś streamuje – widzowie zobaczą zmianę od razu.</p>
+    ${E.streams.map((s, i) => `<div class="item"><div class="r2">${F(`streams.${i}.nick`, 'Nick')}${F(`streams.${i}.url`, 'Link do transmisji', 'url')}</div>${IMG(`streams.${i}.img`, 'Zdjęcie profilowe (opcjonalnie)', 'sq')}${F(`streams.${i}.live`, 'Na żywo', 'checkbox')}${rm('streams', i)}</div>`).join('')}${addBtn('streams', 'stream', 'Dodaj streamera')}`;
+
+  if (t === 'replays') {
+    const e = E.editions[V.aed]; if (!e) return '';
+    return `${edSelect()}<div style="height:12px"></div>${(e.replays = e.replays || []).map((r, i) => `<div class="item"><div class="r3">${F(`editions.${V.aed}.replays.${i}.title`, 'Tytuł')}${F(`editions.${V.aed}.replays.${i}.url`, 'Link YouTube', 'url')}${S(`editions.${V.aed}.replays.${i}.type`, 'Typ', [['film', 'Film'], ['stream', 'Stream']])}</div>${IMG(`editions.${V.aed}.replays.${i}.thumb`, 'Miniaturka (domyślnie z YouTube)', 'wide')}${rm(`editions.${V.aed}.replays`, i)}</div>`).join('')}${addBtn(`editions.${V.aed}.replays`, 'replay', 'Dodaj powtórkę')}`;
+  }
+
+  if (t === 'videos') return `${E.videos.map((v, i) => `<div class="item"><div class="r2">${F(`videos.${i}.title`, 'Tytuł')}${F(`videos.${i}.url`, 'Link YouTube', 'url')}</div>${IMG(`videos.${i}.thumb`, 'Miniaturka (domyślnie z YouTube)', 'wide')}${rm('videos', i)}</div>`).join('')}${addBtn('videos', 'video', 'Dodaj film')}`;
+
+  if (t === 'org') return `${E.org.map((o, i) => `<div class="item"><div class="r2">${F(`org.${i}.nick`, 'Nick')}${F(`org.${i}.role`, 'Rola')}</div>${IMG(`org.${i}.img`, 'Zdjęcie profilowe (domyślnie głowa ze skina)', 'sq')}${rm('org', i)}</div>`).join('')}${addBtn('org', 'org', 'Dodaj osobę')}`;
+
+  if (t === 'preds') return `<button class="btn ghost sm" data-act="predload">Odśwież listę</button>
+    <p class="mut" style="margin:12px 0">Typów: ${PRED.length}</p>
+    ${PRED.map(p => `<div class="item"><b>${esc(p.nick)}</b> <span class="mut" style="font-size:12px">(${esc(p.edition)})</span><div style="font-size:13px;margin-top:4px">${p.order.map((n, i) => (i + 1) + '. ' + esc(n)).join(' &nbsp; ')}</div><button class="rm" data-act="delpred" data-id="${esc(p.id)}">Usuń</button></div>`).join('')}`;
+  return '';
+}
+
+/* ---------- zdarzenia ---------- */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'lp') { const b = document.querySelector('[data-act="login"]'); if (b) b.click(); }
+});
+document.addEventListener('input', onField);
+document.addEventListener('change', e => {
+  if (e.target.dataset.img) { handleImg(e.target); return; }
+  if (e.target.dataset.st) { V[e.target.dataset.st] = e.target.value; render(); return; }
+  onField(e);
+});
+function onField(e) {
+  const t = e.target;
+  if (t.id === 'pnick') { pred.nick = t.value; return; }
+  if (!t.dataset || !t.dataset.p || !E) return;
+  let v = t.type === 'checkbox' ? t.checked : t.type === 'number' ? Number(t.value) : t.value;
+  set(E, t.dataset.p, v);
+}
+
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const [act, arg] = el.dataset.act.split(':');
+  switch (act) {
+    case 'nav': e.preventDefault(); go(arg); break;
+    case 'burger': $('#nav').classList.toggle('open'); break;
+    case 'play': {
+      const id = ytId(el.dataset.url);
+      if (id) el.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" allow="autoplay;encrypted-media;fullscreen" allowfullscreen></iframe>`;
+      else if (el.dataset.url) open(el.dataset.url, '_blank');
+      break;
+    }
+    case 'sf': V.sf = arg; render(); break;
+    case 'rt': V.rt = arg; render(); break;
+    case 'ed': V.ed = arg; render(); break;
+    case 'up': case 'down': {
+      const i = +arg, j = act === 'up' ? i - 1 : i + 1;
+      if (j >= 0 && j < pred.order.length) { [pred.order[i], pred.order[j]] = [pred.order[j], pred.order[i]]; render(); }
+      break;
+    }
+    case 'submit': await submitPred(); break;
+    case 'atab': V.tab = arg; render(); break;
+    case 'add': get(E, el.dataset.path).push(NEW[el.dataset.kind]()); render(); break;
+    case 'del': if (confirm('Usunąć?')) { get(E, el.dataset.path).splice(+el.dataset.i, 1); if (V.aed >= E.editions.length) V.aed = 0; render(); } break;
+    case 'clearimg': set(E, el.dataset.path, ''); render(); break;
+    case 'save': await save(); break;
+    case 'login': {
+      if ($('#lp').value !== ADMIN_PASS) { toast('Błędne hasło'); break; }
+      if (!configured) { demoAuthed = true; render(); break; }
+      try { await auth.signInWithEmailAndPassword(ADMIN_EMAIL, FB_PASS); }
+      catch (err) { console.error(err); toast('Logowanie do Firebase nie powiodło się: ' + (err.code || err.message)); }
+      break;
+    }
+    case 'logout':
+      if (configured) await auth.signOut();
+      demoAuthed = false; E = null; render();
+      break;
+    case 'predload': await loadPreds(); break;
+    case 'delpred': if (confirm('Usunąć typ?')) { await db.collection('predictions').doc(el.dataset.id).delete(); await loadPreds(); } break;
+  }
+});
+
+function handleImg(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const mode = inp.dataset.mode, path = inp.dataset.img;
+  const [W, H] = mode === 'wide' ? [480, 270] : mode === 'logo' ? [256, 256] : [128, 128];
+  const rd = new FileReader();
+  rd.onload = () => {
+    const im = new Image();
+    im.onerror = () => toast('Nie udało się wczytać obrazka');
+    im.onload = () => {
+      const c = document.createElement('canvas'), x = c.getContext('2d');
+      let out;
+      if (mode === 'logo') {
+        const r = Math.min(W / im.width, H / im.height, 1);
+        c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
+        x.drawImage(im, 0, 0, c.width, c.height);
+        out = c.toDataURL('image/png');
+      } else {
+        c.width = W; c.height = H;
+        const r = Math.max(W / im.width, H / im.height), w = im.width * r, h = im.height * r;
+        x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+        x.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+        out = c.toDataURL('image/jpeg', mode === 'wide' ? 0.72 : 0.82);
+      }
+      set(E, path, out); render();
+    };
+    im.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+
+async function save() {
+  if (!E.editions.find(x => x.id === E.current)) E.current = E.editions[0].id;
+  if (JSON.stringify(E).length > 950000) { toast('Za dużo danych (limit 1 MB) – usuń część zdjęć'); return; }
+  try {
+    if (configured) {
+      await Promise.race([db.doc('site/config').set(E), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout – brak połączenia z Firebase')), 8000))]);
+    } else {
+      try { localStorage.setItem('mcgt-demo', JSON.stringify(E)); } catch (x) {}
+    }
+    D = clone(E); applyTheme();
+    toast('Zapisano i opublikowano');
+  } catch (err) { console.error(err); toast('Błąd zapisu – sprawdź reguły Firestore'); }
+}
+
+async function submitPred() {
+  const nick = pred.nick.trim();
+  if (!nick) return toast('Podaj swój nick');
+  if (!configured) return toast('Typowanie działa po podłączeniu Firebase');
+  const id = ed().id + '_' + nick.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  try {
+    await db.collection('predictions').doc(id).set({nick, order: pred.order, edition: ed().id, ts: Date.now()});
+    toast('Typ wysłany!');
+  } catch (err) { toast('Ten nick już typował'); }
+}
+
+async function loadPreds() {
+  if (!configured) return;
+  const s = await db.collection('predictions').orderBy('ts', 'desc').limit(300).get();
+  PRED = s.docs.map(d => ({id: d.id, ...d.data()}));
+  render();
+}
+
+setTimeout(() => { if (!ready) { ready = true; if (page() === 'admin') render(); } }, 4000);
+applyTheme();
+render();
+</script>
+</body>
+</html>
